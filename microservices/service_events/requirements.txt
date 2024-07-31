@@ -1,0 +1,6 @@
+Flask
+Flask-Session
+SQLAlchemy
+Flask-SQLAlchemy
+Flask-RESTful
+mysqlclient
