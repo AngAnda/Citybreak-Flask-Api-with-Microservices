@@ -10,4 +10,4 @@ class ServiceEvents(ServiceTemplate):
 
 
 if __name__ == '__main__':
-    ServiceEvents('service_events').start()
+    ServiceEvents('service-events').start()

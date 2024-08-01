@@ -8,13 +8,10 @@ from decouple import config
 class ServiceOneProxy:  # TODO: frumos sa fie generate
     def __init__(self, service):
         self.service = service
-
-    def get_hello(self, name: str):
-        endpoint = self.service.injector.get(ServiceDiscovery).discover('service_one')
-        if not endpoint:
-            return 'No endpoint', 401
-        return requests.get(f'{endpoint.to_base_url()}/hello/{name}').json()
-
+    def get_hello(self, id):
+        endpoint = self.service.injector.get(ServiceDiscovery).discover('service-events')
+        response = requests.get(f'{endpoint.to_base_url()}/service_events/{id}')
+        return response.json(), response.status_code
 
 class ServiceTwoModule(Module):
     def __init__(self, service_two):
@@ -26,9 +23,8 @@ class ServiceTwoModule(Module):
 
 
 def configure_views(app):
-    @app.route('/get_hello/<name>')
+    @app.route('/events/<name>')
     def get_hello(name: str, service_one_client: ServiceOneProxy):
         app.logger.info(f'get_hello/{name} called in {config("MICROSERVICE_NAME")}')
         data_from_service_one = service_one_client.get_hello(name)
-        my_own_data = f'Data for {name} from {config("MICROSERVICE_NAME")}'
-        return f'{data_from_service_one} AND {my_own_data}'
+        return data_from_service_one

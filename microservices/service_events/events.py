@@ -52,3 +52,7 @@ def configure_views(app):
         db.session.add(ev)
         db.session.commit()
         return 'OK', 201
+
+    @app.route('/test')
+    def test():
+        print('test123')

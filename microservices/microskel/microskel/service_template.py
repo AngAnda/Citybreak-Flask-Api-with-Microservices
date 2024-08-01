@@ -15,6 +15,7 @@ import microskel.health_module
 import microskel.logging_module
 import microskel.consul_discovery_module
 import microskel.log_call_module
+import microskel.redis_module
 
 
 class ServiceTemplate:
@@ -33,6 +34,8 @@ class ServiceTemplate:
                 microskel.consul_discovery_module.ConsulDiscoveryModule(self.app)]
         if config('USE_DB', cast=bool):
             modules.append(microskel.db_module.DatabaseModule(self.app))
+        if config('USE_REDIS', cast=bool):
+            modules.append(microskel.redis_module.RedisModule(self.app))
         return modules
 
     def get_python_modules(self):
@@ -42,6 +45,7 @@ class ServiceTemplate:
                 microskel.health_module,
                 microskel.db_module,
                 microskel.logging_module,
+                microskel.redis_module,
                 microskel.consul_discovery_module]
 
     def start(self):

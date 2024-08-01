@@ -1,0 +1,10 @@
+Flask
+Flask-Session
+SQLAlchemy
+Flask-SQLAlchemy
+Flask-RESTful
+mysqlclient
+redis
+injector
+requests
+python-decouple

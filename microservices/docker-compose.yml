@@ -6,7 +6,7 @@ services:
       context: microskel
     image: microskel
 
-  consul-server:  # centralizeaza catalogul de servicii + leader election
+  consul-server:
     image: progrium/consul
     expose:
       - 8300
@@ -16,7 +16,7 @@ services:
       - 8302/udp
       - 8400
     ports:
-      - "8500:8500"  # PAT
+      - "8500:8500"
     networks:
       siemens:
         ipv4_address: 10.10.10.2
@@ -25,10 +25,9 @@ services:
         limits:
           cpus: '0.25'
           memory: 150M
-    # memswap_limit: 300M # pentru memorie
     command: "-server -bootstrap -ui-dir /ui -advertise 10.10.10.2"
 
-  consul-agent:  # cu el discuta aplicatia mea + verifica health
+  consul-agent:
     image: progrium/consul
     expose:
       - 8300
@@ -44,14 +43,9 @@ services:
     depends_on:
       consul-server:
         condition: service_started
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '1'
-#          memory: 500M
     command: "-advertise 10.10.10.3 -join 10.10.10.2"
 
-  elasticsearch:  # indexeaza logurile (primite de la logstash) in vederea cautarii
+  elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.15.2
     expose:
       - 9200
@@ -66,8 +60,10 @@ services:
         limits:
           cpus: '1'
           memory: 1G
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
 
-  kibana:  # master pt cautari loguri + indexari
+  kibana:
     image: docker.elastic.co/kibana/kibana:7.15.2
     depends_on:
       elasticsearch:
@@ -81,9 +77,9 @@ services:
       resources:
         limits:
           cpus: '1'
-          memory: 700M
+          memory: 70M
 
-  logstash-agent:  # broker intre aplicatie si elasticsearch
+  logstash-agent:
     image: docker.elastic.co/logstash/logstash:7.15.2
     expose:
       - 51515
@@ -93,7 +89,7 @@ services:
     networks:
       siemens:
         ipv4_address: 10.10.10.6
-    command: "-e \"input { tcp { port => 51515 codec => json } }  output { elasticsearch { hosts => 'http://10.10.10.4:9200' } } \""
+    command: "-e \"input { tcp { port => 51515 codec => json } } output { elasticsearch { hosts => 'http://10.10.10.4:9200' } } \""
     deploy:
       resources:
         limits:
@@ -123,42 +119,8 @@ services:
         limits:
           cpus: '0.5'
           memory: 500M
-
-#  service-one-1:
-#    build: service_one
-#    depends_on:
-#      consul-agent:
-#        condition: service_started
-#      logstash-agent:
-#        condition: service_started
-#      service-one-db:
-#        condition: service_healthy
-#      microskel:
-#        condition: service_started
-#    environment:
-#      - MICROSERVICE_NAME=service_one
-#      - MICROSERVICE_HOST=service-one-1
-#      - MICROSERVICE_PORT=5000
-#      - MICROSERVICE_DEBUG=True
-#      - CONSUL_CHECK_INTERVAL=20s
-#      - CONSUL_CHECK_TIMEOUT=10s
-#      - CONSUL_HOST=consul-agent
-#      - CONSUL_PORT=8500
-#      - LOGSTASH_AGENT_HOST=logstash-agent
-#      - LOGSTASH_AGENT_PORT=51515
-#      - LOGSTASH_ENABLED=True
-#      - MICROSERVICE_DB_URI=mysql://keyvalue:abc123@service-one-db/keyvalue
-#      - USE_DB=True
-#    networks:
-#      siemens:
-#        ipv4_address: 10.10.10.10
-#    ports:
-#      - "8080:5000"
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '0.25'
-#          memory: 100M
+    volumes:
+      - dbdata_events:/var/lib/mysql
 
   service-events:
     build: service_events
@@ -172,7 +134,7 @@ services:
       microskel:
         condition: service_started
     environment:
-      - MICROSERVICE_NAME=service_events
+      - MICROSERVICE_NAME=service-events
       - MICROSERVICE_HOST=service-events
       - MICROSERVICE_PORT=5000
       - MICROSERVICE_DEBUG=True
@@ -195,36 +157,122 @@ services:
         limits:
           cpus: '0.25'
           memory: 100M
-#
-#  service-two-1:
-#    build: service_two
-#    depends_on:
-#      - consul-agent
-#      - logstash-agent
-#      - microskel
-#    environment:
-#      - MICROSERVICE_NAME=service_two
-#      - MICROSERVICE_HOST=service-two-1
-#      - MICROSERVICE_PORT=5000
-#      - MICROSERVICE_DEBUG=True
-#      - CONSUL_CHECK_INTERVAL=20s
-#      - CONSUL_CHECK_TIMEOUT=10s
-#      - CONSUL_HOST=consul-agent
-#      - CONSUL_PORT=8500
-#      - LOGSTASH_AGENT_HOST=logstash-agent
-#      - LOGSTASH_AGENT_PORT=51515
-#      - LOGSTASH_ENABLED=True
-#      - MICROSERVICE_DB_URI=mysql://keyvalue:abc123@service-one-db/keyvalue
-#    networks:
-#      siemens:
-#        ipv4_address: 10.10.10.12
-#    ports:
-#      - "8082:5000"
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '0.25'
-#          memory: 100M
+
+  redis-db:
+    image: redis:latest
+    environment:
+      - REDIS_PASSWORD=yourpassword
+    networks:
+      siemens:
+        ipv4_address: 10.10.10.8
+    ports:
+      - "6380:6379"
+    volumes:
+      - dbdata_weather:/data
+
+  service-gateway:
+    build: service_gateway
+    depends_on:
+      - consul-agent
+      - logstash-agent
+      - microskel
+    environment:
+      - MICROSERVICE_NAME=service_gateway
+      - MICROSERVICE_HOST=service-gateway-1
+      - MICROSERVICE_PORT=5000
+      - MICROSERVICE_DEBUG=True
+      - CONSUL_CHECK_INTERVAL=20s
+      - CONSUL_CHECK_TIMEOUT=10s
+      - CONSUL_HOST=consul-agent
+      - CONSUL_PORT=8500
+      - LOGSTASH_AGENT_HOST=logstash-agent
+      - LOGSTASH_AGENT_PORT=51515
+      - LOGSTASH_ENABLED=True
+      - MICROSERVICE_DB_URI=mysql://
+      - USE_DB=False
+    networks:
+      siemens:
+        ipv4_address: 10.10.10.20
+    ports:
+      - "8082:5000"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 100M
+
+  service-two-1:
+    build: service_two
+    depends_on:
+      microskel:
+        condition: service_started
+      consul-agent:
+        condition: service_started
+      logstash-agent:
+        condition: service_started
+      service-one-db:
+        condition: service_started
+    environment:
+      - MICROSERVICE_NAME=service_two
+      - MICROSERVICE_HOST=service-two-1
+      - MICROSERVICE_PORT=5000
+      - MICROSERVICE_DEBUG=True
+      - CONSUL_CHECK_INTERVAL=20s
+      - CONSUL_CHECK_TIMEOUT=10s
+      - CONSUL_HOST=consul-agent
+      - CONSUL_PORT=8500
+      - LOGSTASH_AGENT_HOST=logstash-agent
+      - LOGSTASH_AGENT_PORT=51515
+      - LOGSTASH_ENABLED=True
+      - USE_DB=False
+    networks:
+      siemens:
+        ipv4_address: 10.10.10.12
+    ports:
+      - "8081:5000"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 100M
+
+  service-weather:
+    build: service_weather
+    depends_on:
+      microskel:
+        condition: service_started
+      consul-agent:
+        condition: service_started
+      logstash-agent:
+        condition: service_started
+      redis-db:
+        condition: service_started
+    environment:
+      - MICROSERVICE_NAME=service_weather
+      - MICROSERVICE_HOST=service-weather
+      - MICROSERVICE_PORT=5000
+      - MICROSERVICE_DEBUG=True
+      - CONSUL_CHECK_INTERVAL=20s
+      - CONSUL_CHECK_TIMEOUT=10s
+      - CONSUL_HOST=consul-agent
+      - CONSUL_PORT=8500
+      - LOGSTASH_AGENT_HOST=logstash-agent
+      - LOGSTASH_AGENT_PORT=51515
+      - LOGSTASH_ENABLED=True
+      - REDIS_HOST=redis-db
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=yourpassword
+      - USE_REDIS=True
+    networks:
+      siemens:
+        ipv4_address: 10.10.10.22
+    ports:
+      - "8086:5000"
+
+volumes:
+  esdata:
+  dbdata_events:
+  dbdata_weather:
 
 networks:
   siemens:

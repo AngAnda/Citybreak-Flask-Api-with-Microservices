@@ -7,3 +7,4 @@ python-consul
 python-decouple
 mysqlclient
 python-logstash
+redis
