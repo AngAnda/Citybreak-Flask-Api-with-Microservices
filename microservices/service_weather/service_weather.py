@@ -11,4 +11,4 @@ class ServiceWeather(ServiceTemplate):
         return super().get_python_modules() + [weather_module]
 
 if __name__ == '__main__':
-    ServiceWeather('service_weather').start()
+    ServiceWeather('service-weather').start()

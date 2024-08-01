@@ -38,6 +38,19 @@ def configure_views(app):
             return ev.to_dict() if ev else \
                 jsonify(status='No such key', context=id), 404
 
+    @app.route('/service_events', methods=['GET'])
+    def get_events(db: SQLAlchemy):
+        city = request.args.get('city')
+        date = request.args.get('date')
+
+        query = db.session.query(Event)
+        if city:
+            query = query.filter(Event.city == city)
+        if date:
+            query = query.filter(Event.date == datetime.strptime(date, '%Y-%m-%d').date())
+
+        events = query.all()
+        return jsonify([ev.to_dict() for ev in events]), 200
 
     @app.route('/service_events', methods=['POST'])
     def create(request: Request, db: SQLAlchemy):
@@ -51,8 +64,29 @@ def configure_views(app):
 
         db.session.add(ev)
         db.session.commit()
-        return 'OK', 201
+        return jsonify({'OK': f'{ev.id}'}), 201
 
-    @app.route('/test')
-    def test():
-        print('test123')
+    @app.route('/service_events/<int:id>', methods=['PUT'])
+    def update(id: int, db: SQLAlchemy):
+        data = request.form
+        ev = db.session.query(Event).filter(Event.id == id).one_or_none()
+        if ev is None:
+            return jsonify(status='No such key', context=id), 404
+
+        ev.city = data.get('city', ev.city)
+        ev.name = data.get('name', ev.name)
+        ev.date = datetime.strptime(data.get('date'), '%Y-%m-%d').date() if data.get('date') else ev.date
+        ev.description = data.get('description', ev.description)
+
+        db.session.commit()
+        return jsonify({'OK': f'{ev.id}'}), 200
+
+    @app.route('/service_events/<int:id>', methods=['DELETE'])
+    def delete(id: int, db: SQLAlchemy):
+        ev = db.session.query(Event).filter(Event.id == id).one_or_none()
+        if ev is None:
+            return jsonify(status='No such key', context=id), 404
+
+        db.session.delete(ev)
+        db.session.commit()
+        return 'OK', 200
