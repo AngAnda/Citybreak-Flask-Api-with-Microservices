@@ -14,7 +14,10 @@ class ServiceTwo(ServiceTemplate):
 
     def get_python_modules(self):
         return (super().get_python_modules() +
-                [service_one_client_module, service_weather_client_module, service_citybreak_client_module])
+                [service_one_client_module,
+                 service_weather_client_module,
+                 service_citybreak_client_module
+                 ])
 
 
 if __name__ == '__main__':

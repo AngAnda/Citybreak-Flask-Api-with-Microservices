@@ -13,7 +13,10 @@ class ServiceWeatherProxy:
         self.service = service
 
     def get_weather(self, city=None, date=None):
-        endpoint = self.service.injector.get(ServiceDiscovery).discover('service-weather')
+        endpoint = self.service.injector.get(ServiceDiscovery).discover('service_weather')
+        if not endpoint:
+            return {"error": "Service weather not found"}, 500
+
         base_url = endpoint.to_base_url()
 
         params = {}
@@ -26,18 +29,18 @@ class ServiceWeatherProxy:
         return response.json(), response.status_code
 
     def create_weather(self, data):
-        endpoint = self.service.injector.get(ServiceDiscovery).discover('service-weather')
+        endpoint = self.service.injector.get(ServiceDiscovery).discover('service_weather')
         response = requests.post(f'{endpoint.to_base_url()}/weather', data=data)
         return response.json(), response.status_code
 
     def update_weather(self, city, date, data):
-        endpoint = self.service.injector.get(ServiceDiscovery).discover('service-weather')
+        endpoint = self.service.injector.get(ServiceDiscovery).discover('service_weather')
         key = f'{city}-{date}' if date else city
         response = requests.put(f'{endpoint.to_base_url()}/weather/{key}', data=data)
         return response.json(), response.status_code
 
     def delete_weather(self, city, date):
-        endpoint = self.service.injector.get(ServiceDiscovery).discover('service-weather')
+        endpoint = self.service.injector.get(ServiceDiscovery).discover('service_weather')
         key = f'{city}-{date}' if date else city
         response = requests.delete(f'{endpoint.to_base_url()}/weather/{key}')
         return response.status_code

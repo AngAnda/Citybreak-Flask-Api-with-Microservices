@@ -13,7 +13,10 @@ class ServiceCitybreakProxy:
         self.service = service
 
     def get_weather(self, city=None, date=None):
-        endpoint = self.service.injector.get(ServiceDiscovery).discover('service-weather')
+        endpoint = self.service.injector.get(ServiceDiscovery).discover('service_weather')
+        if not endpoint:
+            return {"error": "Service weather not found"}, 500
+
         base_url = endpoint.to_base_url()
 
         params = {}
