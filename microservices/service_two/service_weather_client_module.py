@@ -4,14 +4,14 @@ from microskel.service_discovery import ServiceDiscovery  # interfata
 import requests
 from decouple import config
 from flask import request, jsonify
-
+from microskel.retry_service import *
 
 # se poate considera remote procedure call, remote server invocation
 
 class ServiceWeatherProxy:
     def __init__(self, service):
         self.service = service
-
+    @retry(strategy_name='exponential_backoff', max_retries=3)
     def get_weather(self, city=None, date=None):
         endpoint = self.service.injector.get(ServiceDiscovery).discover('service_weather')
         if not endpoint:
@@ -28,17 +28,20 @@ class ServiceWeatherProxy:
         response = requests.get(f'{base_url}/weather', params=params)
         return response.json(), response.status_code
 
+    @retry(strategy_name='exponential_backoff', max_retries=3)
     def create_weather(self, data):
         endpoint = self.service.injector.get(ServiceDiscovery).discover('service_weather')
         response = requests.post(f'{endpoint.to_base_url()}/weather', data=data)
         return response.json(), response.status_code
 
+    @retry(strategy_name='exponential_backoff', max_retries=3)
     def update_weather(self, city, date, data):
         endpoint = self.service.injector.get(ServiceDiscovery).discover('service_weather')
         key = f'{city}-{date}' if date else city
         response = requests.put(f'{endpoint.to_base_url()}/weather/{key}', data=data)
         return response.json(), response.status_code
 
+    @retry(strategy_name='exponential_backoff', max_retries=3)
     def delete_weather(self, city, date):
         endpoint = self.service.injector.get(ServiceDiscovery).discover('service_weather')
         key = f'{city}-{date}' if date else city
