@@ -73,11 +73,8 @@ services:
     networks:
       siemens:
         ipv4_address: 10.10.10.5
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 70M
+    environment:
+      - ELASTICSEARCH_HOSTS=http://10.10.10.4:9200
 
   logstash-agent:
     image: docker.elastic.co/logstash/logstash:7.15.2
@@ -150,8 +147,8 @@ services:
     networks:
       siemens:
         ipv4_address: 10.10.10.15
-    ports:
-      - "8085:5000"
+    expose:
+      - 5000
     deploy:
       resources:
         limits:
@@ -173,37 +170,6 @@ services:
   service-gateway:
     build: service_gateway
     depends_on:
-      - consul-agent
-      - logstash-agent
-      - microskel
-    environment:
-      - MICROSERVICE_NAME=service_gateway
-      - MICROSERVICE_HOST=service-gateway-1
-      - MICROSERVICE_PORT=5000
-      - MICROSERVICE_DEBUG=True
-      - CONSUL_CHECK_INTERVAL=20s
-      - CONSUL_CHECK_TIMEOUT=10s
-      - CONSUL_HOST=consul-agent
-      - CONSUL_PORT=8500
-      - LOGSTASH_AGENT_HOST=logstash-agent
-      - LOGSTASH_AGENT_PORT=51515
-      - LOGSTASH_ENABLED=True
-      - MICROSERVICE_DB_URI=mysql://
-      - USE_DB=False
-    networks:
-      siemens:
-        ipv4_address: 10.10.10.20
-    ports:
-      - "8082:5000"
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 100M
-
-  service-two-1:
-    build: service_two
-    depends_on:
       microskel:
         condition: service_started
       consul-agent:
@@ -213,8 +179,8 @@ services:
       service-one-db:
         condition: service_started
     environment:
-      - MICROSERVICE_NAME=service_two
-      - MICROSERVICE_HOST=service-two-1
+      - MICROSERVICE_NAME=service_gateway
+      - MICROSERVICE_HOST=service-gateway
       - MICROSERVICE_PORT=5000
       - MICROSERVICE_DEBUG=True
       - CONSUL_CHECK_INTERVAL=20s
@@ -266,8 +232,8 @@ services:
     networks:
       siemens:
         ipv4_address: 10.10.10.22
-    ports:
-      - "8086:5000"
+    expose:
+      - 5000
 
 volumes:
   esdata:

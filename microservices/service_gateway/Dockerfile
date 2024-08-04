@@ -1,8 +1,8 @@
 FROM microskel
 
-ADD . /opt/gateway
-WORKDIR /opt/gateway
+ADD . /opt/service_two
+WORKDIR /opt/service_two
 
 RUN pip install -r requirements.txt
 
-CMD ["python", "service_gateway.py"]
+CMD ["python", "service_two.py"]
